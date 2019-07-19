@@ -3,8 +3,8 @@ extern crate rand;
 use rand::Rng;
 use std::cmp::Ord;
 use std::ptr;
-use std::mem;
 use std::marker;
+use std::mem::MaybeUninit;
 
 struct NodePtr<T> {
     p: *mut T,
@@ -49,8 +49,8 @@ impl<T> NodePtr<T> {
 }
 
 struct Node<K, V> {
-    key: Option<K>,
-    val: Option<V>,
+    key: MaybeUninit<K>,
+    val: MaybeUninit<V>,
     forward: Vec<NodePtr<Node<K, V>>>,
 }
 
@@ -62,8 +62,8 @@ impl<K, V> Node<K, V> {
         }
 
         Node {
-            key: Some(k),
-            val: Some(v),
+            key: MaybeUninit::new(k),
+            val: MaybeUninit::new(v),
             forward: forward,
         }
     }
@@ -75,8 +75,8 @@ impl<K, V> Node<K, V> {
         }
 
         Node {
-            key: None,
-            val: None,
+            key: MaybeUninit::uninit(),
+            val: MaybeUninit::uninit(),
             forward: forward,
         }
     }
@@ -98,7 +98,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
             self.head.resolve().map(|node| {
                 self.len -= 1;
                 self.head = node.forward[0];
-                (node.key.as_ref().unwrap(), node.val.as_ref().unwrap())
+                unsafe { (&*node.key.as_ptr(), &*node.val.as_ptr()) }
             })
         }
     }
@@ -120,7 +120,7 @@ impl<'a, K, V> Iterator for IterMut<'a, K, V> {
             self.head.resolve_mut().map(|node| {
                 self.len -= 1;
                 self.head = node.forward[0];
-                (node.key.as_ref().unwrap(), node.val.as_mut().unwrap())
+                unsafe { (&*node.key.as_ptr(), &mut *node.val.as_mut_ptr()) }
             })
         }
     }
@@ -136,9 +136,7 @@ pub struct SkipList<K, V> {
 impl<K, V> SkipList<K, V> where K: Ord,
 {
     pub fn new(max_level: usize) -> Self {
-        let node = unsafe {
-            Box::leak(Box::new(Node::new_head(max_level)))
-        };
+        let node = Box::leak(Box::new(Node::new_head(max_level)));
 
         SkipList {
             head: NodePtr::some(node),
@@ -160,15 +158,17 @@ impl<K, V> SkipList<K, V> where K: Ord,
             while let Some(node) = curr_node_ptr.resolve_mut() {
                 match node.forward[i].resolve_mut() {
                     Some(x) => {
-                        if *x.key.as_ref().unwrap() == k {
-                            x.val = Some(v);
-                            return;
-                        }
-                        
-                        if *x.key.as_ref().unwrap() < k {
-                            curr_node_ptr = node.forward[i];
-                        } else {
-                            break;
+                        unsafe {
+                            if *x.key.as_ptr() == k {
+                                x.val = MaybeUninit::new(v);
+                                return;
+                            }
+                            
+                            if *x.key.as_ptr() < k {
+                                curr_node_ptr = node.forward[i];
+                            } else {
+                                break;
+                            }
                         }
                     }
                     None => break,
@@ -202,14 +202,16 @@ impl<K, V> SkipList<K, V> where K: Ord,
             while let Some(node) = curr_node_ptr.resolve() {
                 match node.forward[i].resolve() {
                     Some(x) => {
-                        if *x.key.as_ref().unwrap() == *k {
-                            return x.val.as_ref();
-                        }
-                        
-                        if *x.key.as_ref().unwrap() < *k {
-                            curr_node_ptr = node.forward[i];
-                        } else {
-                            break;
+                        unsafe {
+                            if *x.key.as_ptr() == *k {
+                                return Some(&*x.val.as_ptr());
+                            }
+                            
+                            if *x.key.as_ptr() < *k {
+                                curr_node_ptr = node.forward[i];
+                            } else {
+                                break;
+                            }
                         }
                     }
                     None => break,
@@ -227,14 +229,16 @@ impl<K, V> SkipList<K, V> where K: Ord,
             while let Some(node) = curr_node_ptr.resolve_mut() {
                 match node.forward[i].resolve_mut() {
                     Some(x) => {
-                        if *x.key.as_ref().unwrap() == *k {
-                            return x.val.as_mut();
-                        }
-                        
-                        if *x.key.as_ref().unwrap() < *k {
-                            curr_node_ptr = node.forward[i];
-                        } else {
-                            break;
+                        unsafe {
+                            if *x.key.as_ptr() == *k {
+                                return Some(&mut *x.val.as_mut_ptr());
+                            }
+                            
+                            if *x.key.as_ptr() < *k {
+                                curr_node_ptr = node.forward[i];
+                            } else {
+                                break;
+                            }
                         }
                     }
                     None => break,
