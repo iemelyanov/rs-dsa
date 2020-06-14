@@ -5,7 +5,7 @@
 use std::ptr;
 
 struct NodePtr<K: Ord, V> {
-    p: *mut Node<K, V>
+    p: *mut Node<K, V>,
 }
 
 struct Node<K: Ord, V> {
@@ -13,18 +13,18 @@ struct Node<K: Ord, V> {
     val: Option<V>,
     left: NodePtr<K, V>,
     right: NodePtr<K, V>,
-    parent: NodePtr<K,V>,
-    is_red: bool
+    parent: NodePtr<K, V>,
+    is_red: bool,
 }
 
 pub struct RBTree<K: Ord, V> {
     root: NodePtr<K, V>,
-    size: usize
+    size: usize,
 }
 
 impl<K: Ord, V> Copy for NodePtr<K, V> {}
 impl<K: Ord, V> Clone for NodePtr<K, V> {
-    fn clone(&self) -> Self { 
+    fn clone(&self) -> Self {
         *self
     }
 }
@@ -73,7 +73,7 @@ impl<K: Ord, V> Node<K, V> {
             left: NodePtr::none(),
             right: NodePtr::none(),
             parent: NodePtr::none(),
-            is_red: true
+            is_red: true,
         }
     }
 
@@ -110,7 +110,7 @@ impl<K: Ord, V> RBTree<K, V> {
     pub fn new() -> Self {
         RBTree {
             root: NodePtr::none(),
-            size: 0
+            size: 0,
         }
     }
 
@@ -144,7 +144,7 @@ impl<K: Ord, V> RBTree<K, V> {
     pub fn contains_key(&self, k: &K) -> bool {
         match self.find_node(k) {
             Some(_) => true,
-            None => false
+            None => false,
         }
     }
 
@@ -199,7 +199,7 @@ impl<K: Ord, V> RBTree<K, V> {
                 } else if *parent_node.right_child_ref() == target_node_ptr {
                     parent_node.set_right_child(tmp_node_ptr);
                 }
-            },
+            }
             None => {
                 self.root = tmp_node_ptr;
             }
@@ -255,7 +255,7 @@ impl<K: Ord, V> RBTree<K, V> {
                 } else if *parent_node.left_child_ref() == target_node_ptr {
                     parent_node.set_left_child(tmp_node_ptr);
                 }
-            },
+            }
             None => {
                 self.root = tmp_node_ptr;
             }
@@ -274,9 +274,13 @@ impl<K: Ord, V> RBTree<K, V> {
 
         while tmp_node_ptr != self.root {
             let parent_node_ptr = RBTree::_parent(tmp_node_ptr);
-            
-            if !parent_node_ptr.is_some() { break; }
-            if !RBTree::_is_red(parent_node_ptr) { break; }
+
+            if !parent_node_ptr.is_some() {
+                break;
+            }
+            if !RBTree::_is_red(parent_node_ptr) {
+                break;
+            }
 
             if parent_node_ptr == RBTree::_left_uncle(tmp_node_ptr) {
                 uncle_node_ptr = RBTree::_right_uncle(tmp_node_ptr);
@@ -375,11 +379,11 @@ impl<K: Ord, V> RBTree<K, V> {
                 root = node.right_child_mut();
             }
         }
-        
+
         let mut node = Box::new(Node::new(k, v));
         (*node).set_parent(parent);
         root.set_some(Box::leak(node));
-        
+
         (*root, None)
     }
 
@@ -458,8 +462,8 @@ impl<K: Ord, V> Drop for RBTree<K, V> {
 
 #[cfg(test)]
 mod tests {
-    use super::RBTree;
     use super::Node;
+    use super::RBTree;
 
     fn child<K: Ord, V>(node: &Node<K, V>, direct: usize) -> &Node<K, V> {
         if direct == 0 {
@@ -538,10 +542,16 @@ mod tests {
         assert_eq!(child(child(child(&node, 1), 0), 1).val.unwrap(), 9);
         assert_eq!(child(child(child(&node, 1), 0), 1).is_red, false);
 
-        assert_eq!(child(child(child(child(&node, 1), 0), 1), 0).val.unwrap(), 8);
+        assert_eq!(
+            child(child(child(child(&node, 1), 0), 1), 0).val.unwrap(),
+            8
+        );
         assert_eq!(child(child(child(child(&node, 1), 0), 1), 0).is_red, true);
 
-        assert_eq!(child(child(child(child(&node, 1), 0), 1), 1).val.unwrap(), 10);
+        assert_eq!(
+            child(child(child(child(&node, 1), 0), 1), 1).val.unwrap(),
+            10
+        );
         assert_eq!(child(child(child(child(&node, 1), 0), 1), 1).is_red, true);
     }
 

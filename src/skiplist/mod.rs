@@ -2,9 +2,9 @@ extern crate rand;
 
 use rand::Rng;
 use std::cmp::Ord;
-use std::ptr;
 use std::marker;
 use std::mem::MaybeUninit;
+use std::ptr;
 
 struct NodePtr<T> {
     p: *mut T,
@@ -133,7 +133,9 @@ pub struct SkipList<K, V> {
     rng: rand::prelude::ThreadRng,
 }
 
-impl<K, V> SkipList<K, V> where K: Ord,
+impl<K, V> SkipList<K, V>
+where
+    K: Ord,
 {
     pub fn new(max_level: usize) -> Self {
         let node = Box::leak(Box::new(Node::new_head(max_level)));
@@ -157,20 +159,18 @@ impl<K, V> SkipList<K, V> where K: Ord,
         for i in (0..self.max_level).rev() {
             while let Some(node) = curr_node_ptr.resolve_mut() {
                 match node.forward[i].resolve_mut() {
-                    Some(x) => {
-                        unsafe {
-                            if *x.key.as_ptr() == k {
-                                x.val = MaybeUninit::new(v);
-                                return;
-                            }
-                            
-                            if *x.key.as_ptr() < k {
-                                curr_node_ptr = node.forward[i];
-                            } else {
-                                break;
-                            }
+                    Some(x) => unsafe {
+                        if *x.key.as_ptr() == k {
+                            x.val = MaybeUninit::new(v);
+                            return;
                         }
-                    }
+
+                        if *x.key.as_ptr() < k {
+                            curr_node_ptr = node.forward[i];
+                        } else {
+                            break;
+                        }
+                    },
                     None => break,
                 }
             }
@@ -201,19 +201,17 @@ impl<K, V> SkipList<K, V> where K: Ord,
         for i in (0..self.max_level).rev() {
             while let Some(node) = curr_node_ptr.resolve() {
                 match node.forward[i].resolve() {
-                    Some(x) => {
-                        unsafe {
-                            if *x.key.as_ptr() == *k {
-                                return Some(&*x.val.as_ptr());
-                            }
-                            
-                            if *x.key.as_ptr() < *k {
-                                curr_node_ptr = node.forward[i];
-                            } else {
-                                break;
-                            }
+                    Some(x) => unsafe {
+                        if *x.key.as_ptr() == *k {
+                            return Some(&*x.val.as_ptr());
                         }
-                    }
+
+                        if *x.key.as_ptr() < *k {
+                            curr_node_ptr = node.forward[i];
+                        } else {
+                            break;
+                        }
+                    },
                     None => break,
                 }
             }
@@ -228,19 +226,17 @@ impl<K, V> SkipList<K, V> where K: Ord,
         for i in (0..self.max_level).rev() {
             while let Some(node) = curr_node_ptr.resolve_mut() {
                 match node.forward[i].resolve_mut() {
-                    Some(x) => {
-                        unsafe {
-                            if *x.key.as_ptr() == *k {
-                                return Some(&mut *x.val.as_mut_ptr());
-                            }
-                            
-                            if *x.key.as_ptr() < *k {
-                                curr_node_ptr = node.forward[i];
-                            } else {
-                                break;
-                            }
+                    Some(x) => unsafe {
+                        if *x.key.as_ptr() == *k {
+                            return Some(&mut *x.val.as_mut_ptr());
                         }
-                    }
+
+                        if *x.key.as_ptr() < *k {
+                            curr_node_ptr = node.forward[i];
+                        } else {
+                            break;
+                        }
+                    },
                     None => break,
                 }
             }

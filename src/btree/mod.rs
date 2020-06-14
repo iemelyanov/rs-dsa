@@ -41,7 +41,7 @@ impl<K: Ord, V> Node<K, V> {
 
             self.keys.insert(i, k);
             self.vals.insert(i, v);
-            self.childs.insert(i+1, next_node);
+            self.childs.insert(i + 1, next_node);
 
             return true;
         }
@@ -59,53 +59,50 @@ impl<K: Ord, V> Node<K, V> {
                     mem::swap(&mut result.1, self.vals.get_unchecked_mut(i));
                 }
                 return Some(result);
-            },
+            }
             Err(mut i) => {
                 if self.childs.len() == 0 {
                     self.keys.insert(i, k);
                     self.vals.insert(i, v);
-                    return None
+                    return None;
                 }
 
                 if self.maybe_split_child(i, max_items) {
                     let _k = unsafe { self.keys.get_unchecked(i) };
                     match &k {
-                        x if *x < *_k => {},
+                        x if *x < *_k => {}
                         x if *_k < *x => {
-                            i += 1;    
+                            i += 1;
                         }
                         _ => {
                             let mut result: (K, V) = (k, v);
                             unsafe {
-                                mem::swap(
-                                    &mut result.1,
-                                    self.vals.get_unchecked_mut(i)
-                                );
+                                mem::swap(&mut result.1, self.vals.get_unchecked_mut(i));
                             }
                             return Some(result);
                         }
                     }
                 }
 
-                return self.childs.get_mut(i).map(|node| {
-                    node.insert(k, v, max_items)
-                }).unwrap();
+                return self
+                    .childs
+                    .get_mut(i)
+                    .map(|node| node.insert(k, v, max_items))
+                    .unwrap();
             }
         }
-
-        None
     }
 
     fn get(&self, k: &K) -> Option<&V> {
         match self.keys.binary_search(k) {
             Ok(i) => {
                 return self.vals.get(i);
-            },
+            }
             Err(i) => {
                 if let Some(node) = self.childs.get(i) {
                     return node.get(k);
                 }
-            },
+            }
         }
 
         None
@@ -147,7 +144,7 @@ impl<K: Ord, V> BTree<K, V> {
                 let mut tmp_node: Node<K, V> = Node::new();
 
                 mem::swap(&mut self.root, &mut tmp_node);
-                
+
                 self.root.keys.push(k);
                 self.root.vals.push(v);
                 self.root.childs.push(tmp_node);
@@ -215,7 +212,7 @@ mod btree_tests {
         assert_eq!(root.keys, vec![3, 5]);
         assert_eq!(root.vals, vec![3, 5]);
         assert_eq!(root.childs.len(), 3);
-        assert_eq!(root.childs.get(0).unwrap().keys, vec![1, 2]); 
+        assert_eq!(root.childs.get(0).unwrap().keys, vec![1, 2]);
         assert_eq!(root.childs.get(1).unwrap().keys, vec![4]);
         assert_eq!(root.childs.get(2).unwrap().keys, vec![6]);
     }
@@ -241,7 +238,7 @@ mod btree_tests {
         assert_eq!(root.keys, vec![3, 5]);
         assert_eq!(root.vals, vec![3, 5]);
         assert_eq!(root.childs.len(), 3);
-        assert_eq!(root.childs.get(0).unwrap().keys, vec![1, 2]); 
+        assert_eq!(root.childs.get(0).unwrap().keys, vec![1, 2]);
         assert_eq!(root.childs.get(1).unwrap().keys, vec![4]);
         assert_eq!(root.childs.get(2).unwrap().keys, vec![6, 7]);
     }
